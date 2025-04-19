@@ -55,10 +55,10 @@ class _WelcomePageState extends State<welcome>
         child: Stack(
           fit: StackFit.expand,
           children: [
-Image.asset(
-  'assets/images/fondo.jpg',
-  fit: BoxFit.cover,
-),
+            Image.asset(
+              'assets/images/fondo.jpg',
+              fit: BoxFit.cover,
+            ),
             BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
               child: Container(color: Colors.white.withOpacity(0.05)),

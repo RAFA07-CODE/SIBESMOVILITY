@@ -91,8 +91,8 @@ class _RegisterScreenState extends State<register>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.network(
-            'https://images.unsplash.com/photo-1491895200222-0fc4a4c35e18?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+          Image.asset(
+            'assets/images/fondo.jpg',
             fit: BoxFit.cover,
           ),
           Container(
@@ -170,8 +170,7 @@ class _RegisterScreenState extends State<register>
                           children: [
                             _buildSocialButton(
                                 FontAwesomeIcons.google, "Google"),
-                            _buildSocialButton(
-                                FontAwesomeIcons.apple, "Apple"),
+                            _buildSocialButton(FontAwesomeIcons.apple, "Apple"),
                           ],
                         ),
                         const SizedBox(height: 24),

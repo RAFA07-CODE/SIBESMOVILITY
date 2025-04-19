@@ -51,11 +51,10 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
           fit: StackFit.expand,
           children: [
             // Fondo con imagen desde URL
-            Image.network(
-              'https://images.unsplash.com/photo-1491895200222-0fc4a4c35e18?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            Image.asset(
+              'assets/images/fondo.jpg',
               fit: BoxFit.cover,
             ),
-
             // Filtro borroso + capa translúcida
             BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),

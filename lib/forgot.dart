@@ -8,7 +8,8 @@ class forgot extends StatefulWidget {
   State<forgot> createState() => _ForgotPasswordState();
 }
 
-class _ForgotPasswordState extends State<forgot> with SingleTickerProviderStateMixin {
+class _ForgotPasswordState extends State<forgot>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
 
@@ -29,8 +30,10 @@ class _ForgotPasswordState extends State<forgot> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(duration: const Duration(milliseconds: 700), vsync: this);
-    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _controller = AnimationController(
+        duration: const Duration(milliseconds: 700), vsync: this);
+    _fadeAnimation =
+        CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
     _controller.forward();
   }
 
@@ -66,8 +69,8 @@ class _ForgotPasswordState extends State<forgot> with SingleTickerProviderStateM
           fit: StackFit.expand,
           children: [
             // Fondo con imagen
-            Image.network(
-              'https://images.unsplash.com/photo-1491895200222-0fc4a4c35e18?q=80&w=1974&auto=format&fit=crop',
+            Image.asset(
+              'assets/images/fondo.jpg',
               fit: BoxFit.cover,
             ),
             // Desenfoque
@@ -97,30 +100,39 @@ class _ForgotPasswordState extends State<forgot> with SingleTickerProviderStateM
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.lock_person_rounded, size: 72, color: _palette["primary"]),
+                        Icon(Icons.lock_person_rounded,
+                            size: 72, color: _palette["primary"]),
                         const SizedBox(height: 16),
                         Text(
                           "¿Olvidaste tu contraseña?",
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _palette["textPrimary"]),
+                          style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: _palette["textPrimary"]),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 12),
                         Text(
                           "Ingresa tu correo y te enviaremos instrucciones para restablecerla.",
-                          style: TextStyle(fontSize: 14, color: _palette["textSecondary"]),
+                          style: TextStyle(
+                              fontSize: 14, color: _palette["textSecondary"]),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 24),
-                        _buildTextField(Icons.email_outlined, "Correo electrónico"),
+                        _buildTextField(
+                            Icons.email_outlined, "Correo electrónico"),
                         const SizedBox(height: 24),
                         ElevatedButton.icon(
                           onPressed: _submit,
                           icon: const Icon(Icons.send, color: Colors.white),
-                          label: const Text("Enviar instrucciones", style: TextStyle(fontSize: 16, color: Colors.white)),
+                          label: const Text("Enviar instrucciones",
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.white)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _palette["primary"],
                             minimumSize: const Size(double.infinity, 50),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
                             elevation: 8,
                             shadowColor: _palette["primary"]!.withOpacity(0.4),
                           ),
@@ -130,7 +142,9 @@ class _ForgotPasswordState extends State<forgot> with SingleTickerProviderStateM
                           onTap: () => Navigator.pop(context),
                           child: Text(
                             "Volver al inicio de sesión",
-                            style: TextStyle(color: _palette["textSecondary"], fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                color: _palette["textSecondary"],
+                                fontWeight: FontWeight.bold),
                           ),
                         )
                       ],

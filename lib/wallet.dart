@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
+import 'help.dart';
+import 'perfil.dart';
 
 class wallet extends StatefulWidget {
   const wallet({super.key});
@@ -77,7 +79,8 @@ class _WalletScreenState extends State<wallet> {
                   transactions.insert(0, {
                     'tipo': 'Recarga',
                     'tarjeta': '1234 5678 9012 3456',
-                    'fecha': DateFormat('dd/MM/yyyy – hh:mm a').format(DateTime.now()),
+                    'fecha': DateFormat('dd/MM/yyyy – hh:mm a')
+                        .format(DateTime.now()),
                     'monto': amount.toStringAsFixed(2)
                   });
                 });
@@ -145,11 +148,15 @@ class _WalletScreenState extends State<wallet> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("Saldo disponible", style: TextStyle(color: secondaryTextColor)),
+                            Text("Saldo disponible",
+                                style: TextStyle(color: secondaryTextColor)),
                             const SizedBox(height: 10),
                             Text(
                               "\$${balance.toStringAsFixed(2)}",
-                              style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -162,8 +169,10 @@ class _WalletScreenState extends State<wallet> {
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: secondaryColor,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
                         ),
                         onPressed: _isScanning
                             ? null
@@ -172,18 +181,23 @@ class _WalletScreenState extends State<wallet> {
                                 _showScanSuccessDialog();
                               },
                         icon: const Icon(Icons.nfc, color: Colors.white),
-                        label: const Text("Escanear", style: TextStyle(color: Colors.white)),
+                        label: const Text("Escanear",
+                            style: TextStyle(color: Colors.white)),
                       ),
                       const SizedBox(height: 12),
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: accentColor,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
                         ),
                         onPressed: _showRechargeDialog,
-                        icon: const Icon(Icons.attach_money, color: Colors.white),
-                        label: const Text("Recargar", style: TextStyle(color: Colors.white)),
+                        icon:
+                            const Icon(Icons.attach_money, color: Colors.white),
+                        label: const Text("Recargar",
+                            style: TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),
@@ -196,12 +210,16 @@ class _WalletScreenState extends State<wallet> {
                 label: const Text("Gestionar tarjetas"),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: mainTextColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
               ),
               const SizedBox(height: 20),
-              Text("Historial de movimientos", style: TextStyle(color: mainTextColor, fontWeight: FontWeight.bold)),
+              Text("Historial de movimientos",
+                  style: TextStyle(
+                      color: mainTextColor, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
               Expanded(
                 child: ListView.builder(
@@ -209,9 +227,13 @@ class _WalletScreenState extends State<wallet> {
                   itemBuilder: (context, index) {
                     final tx = transactions[index];
                     return ListTile(
-                      leading: const Icon(Icons.monetization_on_outlined, color: Colors.green),
-                      title: Text("${tx['tipo']} - \$${tx['monto']}", style: TextStyle(color: mainTextColor)),
-                      subtitle: Text("${tx['fecha']} - Tarjeta: ${tx['tarjeta']}", style: TextStyle(color: secondaryTextColor)),
+                      leading: const Icon(Icons.monetization_on_outlined,
+                          color: Colors.green),
+                      title: Text("${tx['tipo']} - \$${tx['monto']}",
+                          style: TextStyle(color: mainTextColor)),
+                      subtitle: Text(
+                          "${tx['fecha']} - Tarjeta: ${tx['tarjeta']}",
+                          style: TextStyle(color: secondaryTextColor)),
                     );
                   },
                 ),
@@ -223,13 +245,25 @@ class _WalletScreenState extends State<wallet> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
         onTap: (index) {
-          // Navegar según el índice (agregar navegación real en app completa)
+          if (index == 2) {
+            Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const help()));
+          }
+
+          if (index == 1) {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => perfil()));
+          }
         },
         selectedItemColor: primaryColor,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: "Wallet"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.account_balance_wallet), label: "Wallet"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
-          BottomNavigationBarItem(icon: Icon(Icons.help_outline), label: "Ayuda"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.help_outline), label: "Ayuda"),
         ],
       ),
     );
