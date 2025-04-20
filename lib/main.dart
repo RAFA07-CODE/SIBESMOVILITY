@@ -5,9 +5,15 @@ import 'wallet.dart';
 import 'login.dart';
 import 'welcome.dart'; // 👈 Importamos la pantalla de bienvenida
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+    await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   runApp(const MyApp());
 }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
+
 import 'help.dart';
 import 'perfil.dart';
 
@@ -14,6 +16,8 @@ class wallet extends StatefulWidget {
 class _WalletScreenState extends State<wallet> {
   double balance = 45.00;
   List<Map<String, String>> transactions = [];
+  bool _isScanning = false;
+
   final Color primaryColor = const Color(0xFF0176fe);
   final Color secondaryColor = const Color(0xFF34C759);
   final Color accentColor = const Color(0xFFFF9500);
@@ -21,9 +25,9 @@ class _WalletScreenState extends State<wallet> {
   final Color mainTextColor = const Color(0xFF1C1C1E);
   final Color secondaryTextColor = const Color.fromARGB(255, 206, 206, 206);
 
-  bool _isScanning = false;
+  Future<void> _scanCard() async {
+    setState(() => _isScanning = true);
 
-  void _showScanSuccessDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -32,8 +36,56 @@ class _WalletScreenState extends State<wallet> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Lottie.asset('assets/nfc_success.json', width: 120, height: 120),
+            Lottie.asset('assets/animation.json', width: 120, height: 120),
             const SizedBox(height: 12),
+            const Text("Escaneando tarjeta...")
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final tag =
+          await FlutterNfcKit.poll(timeout: const Duration(seconds: 10));
+      print("=== DATOS DE LA TARJETA NFC ===");
+      print("Tipo: ${tag.type}");
+      print("ID: ${tag.id}");
+      print("ATQA: ${tag.atqa}");
+      print("SAK: ${tag.sak}");
+      print("Historial: ${tag.historicalBytes}");
+      print("Estándar: ${tag.standard}");
+      print("Sistema: ${tag.systemCode}");
+      print("Código de aplicación: ${tag.applicationData}");
+// print("Protocolo: ${tag.protocol}"); // Removed as 'protocol' is not defined
+// print("Velocidad: ${tag.transmissionRate}"); // Removed as 'transmissionRate' is not defined
+
+      await Future.delayed(const Duration(seconds: 1));
+      await FlutterNfcKit.finish();
+
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        _showScanSuccessDialog();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        _showScanErrorDialog();
+      }
+    }
+
+    setState(() => _isScanning = false);
+  }
+
+  void _showScanSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Lottie.asset('assets/nfc_success1.json', width: 120, height: 120),
+            const SizedBox(height: 8),
             const Text("Tarjeta escaneada con éxito")
           ],
         ),
@@ -41,11 +93,24 @@ class _WalletScreenState extends State<wallet> {
     );
 
     Future.delayed(const Duration(seconds: 2), () {
-      Navigator.of(context).pop();
-      setState(() {
-        _isScanning = false;
-      });
+      if (context.mounted) Navigator.of(context).pop();
     });
+  }
+
+  void _showScanErrorDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Error"),
+        content: const Text("No se pudo leer la tarjeta. Intenta de nuevo."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Cerrar"),
+          )
+        ],
+      ),
+    );
   }
 
   void _showRechargeDialog() {
@@ -111,7 +176,7 @@ class _WalletScreenState extends State<wallet> {
     );
 
     Future.delayed(const Duration(seconds: 2), () {
-      Navigator.of(context).pop();
+      if (context.mounted) Navigator.of(context).pop();
     });
   }
 
@@ -125,14 +190,12 @@ class _WalletScreenState extends State<wallet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "Mi Tarjeta",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: mainTextColor,
-                ),
-              ),
+              Text("Mi Tarjeta",
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: mainTextColor,
+                  )),
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -151,13 +214,11 @@ class _WalletScreenState extends State<wallet> {
                             Text("Saldo disponible",
                                 style: TextStyle(color: secondaryTextColor)),
                             const SizedBox(height: 10),
-                            Text(
-                              "\$${balance.toStringAsFixed(2)}",
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold),
-                            ),
+                            Text("\$\${balance.toStringAsFixed(2)}",
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -174,12 +235,7 @@ class _WalletScreenState extends State<wallet> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 12),
                         ),
-                        onPressed: _isScanning
-                            ? null
-                            : () {
-                                setState(() => _isScanning = true);
-                                _showScanSuccessDialog();
-                              },
+                        onPressed: _isScanning ? null : _scanCard,
                         icon: const Icon(Icons.nfc, color: Colors.white),
                         label: const Text("Escanear",
                             style: TextStyle(color: Colors.white)),
@@ -204,16 +260,23 @@ class _WalletScreenState extends State<wallet> {
                 ],
               ),
               const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.credit_card, color: Colors.white),
-                label: const Text("Gestionar tarjetas"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: mainTextColor,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // Acción para gestionar tarjetas
+                  },
+                  icon: const Icon(Icons.credit_card, color: Colors.white),
+                  label: const Text("Gestionar tarjetas"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black87,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 16),
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -229,10 +292,10 @@ class _WalletScreenState extends State<wallet> {
                     return ListTile(
                       leading: const Icon(Icons.monetization_on_outlined,
                           color: Colors.green),
-                      title: Text("${tx['tipo']} - \$${tx['monto']}",
+                      title: Text("\${tx['tipo']} - \$\${tx['monto']}",
                           style: TextStyle(color: mainTextColor)),
                       subtitle: Text(
-                          "${tx['fecha']} - Tarjeta: ${tx['tarjeta']}",
+                          "\${tx['fecha']} - Tarjeta: \${tx['tarjeta']}",
                           style: TextStyle(color: secondaryTextColor)),
                     );
                   },
@@ -248,13 +311,9 @@ class _WalletScreenState extends State<wallet> {
           if (index == 2) {
             Navigator.push(
                 context, MaterialPageRoute(builder: (_) => const help()));
-          }
-
-          if (index == 1) {
+          } else if (index == 1) {
             Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => perfil()));
+                context, MaterialPageRoute(builder: (_) => const perfil()));
           }
         },
         selectedItemColor: primaryColor,

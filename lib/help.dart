@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'wallet.dart';
+import 'login.dart';
 
 class help extends StatelessWidget {
   const help({super.key});
@@ -84,6 +86,27 @@ class help extends StatelessWidget {
             ],
           ),
         ),
+      ),
+            bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 1,
+        onTap: (index) {
+          if (index == 1) {
+            Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const login()));
+          }
+          if (index == 0) {
+            Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const wallet()));
+          }
+        },
+        selectedItemColor: primaryColor,
+        items: const [
+          BottomNavigationBarItem(
+              icon: Icon(Icons.account_balance_wallet), label: "Wallet"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.help_outline), label: "Ayuda"),
+        ],
       ),
     );
   }
