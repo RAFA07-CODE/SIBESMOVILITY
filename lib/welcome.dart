@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'login.dart';
 
 class welcome extends StatefulWidget {
@@ -60,7 +61,7 @@ class _WelcomePageState extends State<welcome>
               fit: BoxFit.cover,
             ),
             BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+              filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
               child: Container(color: Colors.white.withOpacity(0.05)),
             ),
             Padding(
@@ -77,7 +78,7 @@ class _WelcomePageState extends State<welcome>
                     const SizedBox(height: 20),
                     Text(
                       "SIBESMOVILITY",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 38,
                         fontWeight: FontWeight.w900, // O FontWeight.black
                         fontFamily: 'Poppins',
@@ -100,7 +101,8 @@ class _WelcomePageState extends State<welcome>
                       style: TextStyle(
                         fontSize: 18,
                         color: secondaryTextColor,
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Roboto',
+                        fontWeight: FontWeight.w400,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -118,9 +120,18 @@ class _WelcomePageState extends State<welcome>
                         elevation: 6,
                         shadowColor: Colors.black38,
                       ),
-                      child: const Text(
-                        "Comenzar",
-                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SvgPicture.asset('assets/icons/arrow-right.svg', color: backgroundColor,),
+                          SizedBox(
+                            width: 8, 
+                          ),
+                          const Text(
+                            "Comenzar",
+                            style: TextStyle(fontSize: 18, color: Colors.white, fontFamily: 'Roboto',)
+                          ),
+                        ],
                       ),
                     ),
                   ],

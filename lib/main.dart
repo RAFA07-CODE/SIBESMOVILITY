@@ -1,11 +1,23 @@
-import 'package:flutter/material.dart';
-import 'register.dart';
-import 'forgot.dart';
-import 'wallet.dart';
-import 'login.dart';
-import 'welcome.dart'; // 👈 Importamos la pantalla de bienvenida
+import 'package:animated_splash_screen/animated_splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/material.dart';
+import 'welcome.dart';
+import 'splash.dart';
+import 'login.dart';
+import 'wallet.dart';
+import 'forgot.dart';
+import 'help.dart';
+import 'register.dart';
+import 'perfil.dart';
+
+final OutlineInputBorder defaultInputBorder = OutlineInputBorder(
+  borderRadius: BorderRadius.circular(8.0),
+  borderSide: const BorderSide(
+    color: Color(0xFF007AFF),
+    width: 1.0,
+  ),
+);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,92 +35,36 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
       title: 'SibesMovility',
+      debugShowCheckedModeBanner: false,
+
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 255, 0, 0)),
-        useMaterial3: true,
+
+        scaffoldBackgroundColor: const Color(0xFFF2F2F7),
+        primaryColor: const Color(0xFF0176fe),
         fontFamily: 'Poppins',
-      ),
-      initialRoute: '/welcome', // 👈 Inicia en la pantalla de bienvenida
-      routes: {
-        '/': (context) => const MyHomePage(title: 'Flutter Demo Home Page'),
-        '/register': (context) => const register(),
-        '/forgot': (context) => const forgot(),
-        '/wallet': (context) => const wallet(),
-        '/login': (context) => const login(),
-        '/welcome': (context) => const welcome(), // 👈 Ruta añadida
-      },
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/register');
-              },
-              child: const Text('Go to Register Page'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/forgot');
-              },
-              child: const Text('Go to Forgot Page'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/wallet');
-              },
-              child: const Text('Go to Wallet Page'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/login');
-              },
-              child: const Text('Go to Login Page'),
-            ),
-          ],
+        inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor:  Colors.white,
+        errorStyle: const TextStyle(height: 0),
+        enabledBorder: defaultInputBorder,
+        focusedBorder: defaultInputBorder,
+        errorBorder: defaultInputBorder
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
+      
+      initialRoute: '/splash',
+      routes: {
+        '/': (context) => const splash(),
+        '/welcome': (context) => const welcome(), 
+        '/login': (context) => const login(),     
+        '/wallet': (context) => const wallet(),  
+        '/forgot': (context) => const forgot(),
+        '/help': (context) => const help(), 
+        '/register': (context) => const register(), 
+        '/perfil': (context) => const perfil(),
+        '/splash': (context) => const splash(),       
+      },
     );
   }
 }

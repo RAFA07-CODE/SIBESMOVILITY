@@ -70,12 +70,12 @@ class _ForgotPasswordState extends State<forgot>
           children: [
             // Fondo con imagen
             Image.asset(
-              'assets/images/fondo.jpg',
+              'assets/images/fondo.jpg', 
               fit: BoxFit.cover,
             ),
             // Desenfoque
             BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+              filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
               child: Container(color: Colors.white.withOpacity(0.05)),
             ),
             // Contenido

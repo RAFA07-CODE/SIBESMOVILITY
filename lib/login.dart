@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:ui';
 
@@ -38,7 +39,7 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
   final Color backgroundColor = const Color(0xFFF2F2F7);
   final Color darkBackground = const Color(0xFF1C1C1E);
   final Color mainTextColor = const Color(0xFF1C1C1E);
-  final Color secondaryTextColor = const Color.fromARGB(255, 206, 206, 206);
+  final Color secondaryTextColor = const Color(0xFF8E8E93);
   final Color errorColor = const Color(0xFFFF3B30);
 
   @override
@@ -57,7 +58,7 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
             ),
             // Filtro borroso + capa translúcida
             BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+              filter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
               child: Container(
                 color: Colors.white.withOpacity(0.1),
               ),
@@ -113,12 +114,21 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
                       ),
                       const SizedBox(height: 30),
                       _buildTextField(
-                          hint: "Correo electrónico", icon: Icons.email),
+                        hint: "Correo electrónico",
+                        prefix: SvgPicture.asset(
+                          'assets/icons/email.svg',
+                          color: primaryColor, // O cualquier ícono personalizado
+                        ),
+                      ),
                       const SizedBox(height: 20),
                       _buildTextField(
-                          hint: "Contraseña",
-                          icon: Icons.lock,
-                          isPassword: true),
+                        hint: "Contraseña",
+                        prefix: SvgPicture.asset(
+                          'assets/icons/lock.svg',
+                          color:  primaryColor, // O cualquier ícono personalizado
+                        ),
+                        isPassword: true,
+                      ),
                       const SizedBox(height: 10),
                       Align(
                         alignment: Alignment.centerRight,
@@ -169,7 +179,7 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
                         child: Text(
                           "¿No tienes cuenta? Regístrate",
                           style: TextStyle(
-                            color: mainTextColor,
+                            color: secondaryTextColor,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -187,14 +197,17 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
 
   Widget _buildTextField({
     required String hint,
-    required IconData icon,
+    required Widget prefix,
     bool isPassword = false,
   }) {
     return TextField(
       obscureText: isPassword,
       style: TextStyle(color: mainTextColor),
       decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: primaryColor),
+        prefixIcon: Padding(
+          padding: const EdgeInsets.all(12.0), // Ajusta según tu imagen
+          child: prefix,
+        ),
         hintText: hint,
         hintStyle: TextStyle(color: secondaryTextColor),
         filled: true,

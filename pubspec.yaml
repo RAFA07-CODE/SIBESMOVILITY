@@ -48,6 +48,8 @@ dependencies:
   intl: ^0.18.0
   flutter_launcher_icons: ^0.13.1
   nfc_manager: ^3.2.0
+  page_transition: ^2.0.9
+  animated_splash_screen:
 
 dev_dependencies:
 
@@ -81,6 +83,7 @@ flutter:
   assets:
      - assets/
      - assets/images/
+     - assets/icons/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -108,6 +111,15 @@ flutter:
         - asset: fonts/Roboto/Roboto-Bold.ttf
           weight: 700
         - asset: fonts/Roboto/Roboto-Italic.ttf
+          style: italic
+
+    - family: Nunito
+      fonts:
+        - asset: fonts/Nunito/Nunito-ExtraBold.ttf
+          weight: 800
+        - asset: fonts/Nunito/Nunito-Bold.ttf
+          weight: 700
+        - asset: fonts/Nunito/Nunito-Italic.ttf
           style: italic
 
   #   - family: Schyler
