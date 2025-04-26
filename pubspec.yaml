@@ -46,9 +46,9 @@ dependencies:
   flutter_launcher_icons: ^0.13.1
   nfc_manager: ^3.2.0
   page_transition: ^2.0.9
-  firebase_core: 2.32.0  # Revisa la última versión
-  firebase_auth: ^4.11.0   # Revisa la última versión
-  cloud_firestore: ^4.2.0 # Revisa la última versión
+  firebase_core: 3.13.0  # Revisa la última versión
+  firebase_auth: ^5.5.2 # Revisa la última versión
+  cloud_firestore: ^5.6.6 # Revisa la última versión
 
   animated_splash_screen:
 
