@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1065116869258",
+    "project_id": "sibesmovility",
+    "storage_bucket": "sibesmovility.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1065116869258:android:821abc2a1add0ce8678373",
+        "android_client_info": {
+          "package_name": "com.example.sibes_movility"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAi6ova9LuMnu8NnJCspCPZmoghDW0UCJ0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

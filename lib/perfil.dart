@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'help.dart';
 import 'wallet.dart';
 
@@ -28,7 +29,7 @@ class _ProfileScreenState extends State<perfil> with SingleTickerProviderStateMi
     "background": Color(0xFFF2F2F7),
     "text": Color(0xFF1C1C1E),
     "subtext": Color(0xFF8E8E93),
-    "error": Color(0xFFFF3B30),
+    "error": Color.fromARGB(255, 252, 37, 25),
   };
 
   @override
@@ -160,7 +161,7 @@ class _ProfileScreenState extends State<perfil> with SingleTickerProviderStateMi
                   // lógica de cerrar sesión (placeholder)
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _palette["error"],
+                  backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
@@ -175,22 +176,61 @@ class _ProfileScreenState extends State<perfil> with SingleTickerProviderStateMi
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 1,
         onTap: (index) {
-          if (index == 2) {
-            Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const help()));
-          }
           if (index == 0) {
             Navigator.push(
                 context, MaterialPageRoute(builder: (_) => const wallet()));
+          } else if (index == 2) {
+            Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const help()));
           }
         },
         selectedItemColor: primaryColor,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-              icon: Icon(Icons.account_balance_wallet), label: "Wallet"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
+            icon: SvgPicture.asset(
+              'assets/icons/wallet.svg',
+              width: 24,
+              height: 24,
+              color: Colors.grey, // o primaryColor si está seleccionado
+            ),
+            activeIcon: SvgPicture.asset(
+              'assets/icons/wallet.svg',
+              width: 24,
+              height: 24,
+              color: primaryColor,
+            ),
+            label: "Wallet",
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.help_outline), label: "Ayuda"),
+            icon: SvgPicture.asset(
+              'assets/icons/user.svg',
+              width: 24,
+              height: 24,
+              color: Colors.grey, // o primaryColor si está seleccionado
+            ),
+            activeIcon: SvgPicture.asset(
+              'assets/icons/user.svg',
+              width: 24,
+              height: 24,
+              color: primaryColor,
+            ),
+            label: "Perfil",
+          ),
+          BottomNavigationBarItem(
+            icon: SvgPicture.asset(
+              'assets/icons/help.svg',
+              width: 24,
+              height: 24,
+              color: Colors.grey, // o primaryColor si está seleccionado
+            ),
+            activeIcon: SvgPicture.asset(
+              'assets/icons/help.svg',
+              width: 24,
+              height: 24,
+              color: primaryColor,
+            ),
+            label: "Ayuda",
+          ),
         ],
       ),
     );

@@ -38,17 +38,18 @@ dependencies:
   flutter_svg: ^2.0.17
   lucide_icons: ^0.257.0
   font_awesome_flutter: ^10.4.0
-  firebase_core: ^2.24.0
-  firebase_auth: ^4.15.0
   flutter_hooks: ^0.20.0
   hooks_riverpod: ^2.4.0
   flutter_nfc_kit: ^3.0.0
-  cloud_firestore: 4.17.5
   lottie: ^2.7.0
   intl: ^0.18.0
   flutter_launcher_icons: ^0.13.1
   nfc_manager: ^3.2.0
   page_transition: ^2.0.9
+  firebase_core: 2.32.0  # Revisa la última versión
+  firebase_auth: ^4.11.0   # Revisa la última versión
+  cloud_firestore: ^4.2.0 # Revisa la última versión
+
   animated_splash_screen:
 
 dev_dependencies:

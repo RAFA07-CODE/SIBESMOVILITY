@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:sibes_movility/perfil.dart';
 import 'wallet.dart';
 import 'login.dart';
 
@@ -87,25 +89,64 @@ class help extends StatelessWidget {
           ),
         ),
       ),
-            bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 2,
         onTap: (index) {
-          if (index == 1) {
-            Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const login()));
-          }
           if (index == 0) {
             Navigator.push(
                 context, MaterialPageRoute(builder: (_) => const wallet()));
+          } else if (index == 1) {
+            Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const perfil()));
           }
         },
         selectedItemColor: primaryColor,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-              icon: Icon(Icons.account_balance_wallet), label: "Wallet"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
+            icon: SvgPicture.asset(
+              'assets/icons/wallet.svg',
+              width: 24,
+              height: 24,
+              color: Colors.grey, // o primaryColor si está seleccionado
+            ),
+            activeIcon: SvgPicture.asset(
+              'assets/icons/wallet.svg',
+              width: 24,
+              height: 24,
+              color: primaryColor,
+            ),
+            label: "Wallet",
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.help_outline), label: "Ayuda"),
+            icon: SvgPicture.asset(
+              'assets/icons/user.svg',
+              width: 24,
+              height: 24,
+              color: Colors.grey, // o primaryColor si está seleccionado
+            ),
+            activeIcon: SvgPicture.asset(
+              'assets/icons/user.svg',
+              width: 24,
+              height: 24,
+              color: primaryColor,
+            ),
+            label: "Perfil",
+          ),
+          BottomNavigationBarItem(
+            icon: SvgPicture.asset(
+              'assets/icons/help.svg',
+              width: 24,
+              height: 24,
+              color: Colors.grey, // o primaryColor si está seleccionado
+            ),
+            activeIcon: SvgPicture.asset(
+              'assets/icons/help.svg',
+              width: 24,
+              height: 24,
+              color: primaryColor,
+            ),
+            label: "Ayuda",
+          ),
         ],
       ),
     );

@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/material.dart';
 
 class register extends StatefulWidget {
   const register({super.key});
@@ -61,20 +63,39 @@ class _RegisterScreenState extends State<register>
       });
 
       try {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        UserCredential userCredential =
+            await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: emailController.text.trim(),
           password: passwordController.text.trim(),
         );
 
-        // TODO: Guardar nombre y teléfono en Firestore si lo deseas
+        final user = userCredential.user;
+        if (user == null) throw FirebaseAuthException(code: 'user-null');
 
-        Navigator.pushReplacementNamed(context, '/dashboard');
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'nombre': nameController.text.trim(),
+          'email': emailController.text.trim(),
+          'telefono': phoneController.text.trim(),
+          'saldo': 0,
+        });
+
+        Navigator.pushReplacementNamed(context, '/login');
       } on FirebaseAuthException catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Error: ${e.message}"),
+            content: Text("Error de autenticación: ${e.message}"),
             backgroundColor: _palette["error"],
-            duration: const Duration(seconds: 2),
+          ),
+        );
+      } catch (e, stack) {
+        debugPrint('Tipo de error: ${e.runtimeType}');
+        debugPrint('Error inesperado: $e');
+        debugPrint('Stacktrace: $stack');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text("Error inesperado. Intenta de nuevo. ${e.toString()}"),
+            backgroundColor: _palette["error"],
           ),
         );
       } finally {
@@ -121,9 +142,13 @@ class _RegisterScreenState extends State<register>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Image.asset(
-                          'assets/images/navi.png',
-                          height: 100,
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16.0),
+                          child: SvgPicture.asset(
+                            'assets/icons/user.svg',
+                            height: 50,
+                            color: _palette["primary"],
+                          ),
                         ),
                         const SizedBox(height: 20),
                         Text("Crear Cuenta", style: _titleStyle()),
@@ -223,19 +248,18 @@ class _RegisterScreenState extends State<register>
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: _palette["primary"]),
         hintText: hintText,
-        hintStyle: TextStyle(color: _palette["subtext"]),
+        hintStyle: TextStyle(color: _palette["subtext"]?.withOpacity(0.5)),
         filled: true,
         fillColor: _palette["background"],
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: _palette["primary"]!, width: 2),
-        ),
+            borderSide: BorderSide(color: _palette["primary"]!, width: 2),
+            borderRadius: BorderRadius.circular(14)),
       ),
     );
   }

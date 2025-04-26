@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:ui';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class login extends StatefulWidget {
   const login({super.key});
@@ -13,6 +15,8 @@ class login extends StatefulWidget {
 class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   @override
   void initState() {
@@ -114,19 +118,23 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
                       ),
                       const SizedBox(height: 30),
                       _buildTextField(
-                        hint: "Correo electrónico",
+                        hintText: "Correo electrónico",
                         prefix: SvgPicture.asset(
                           'assets/icons/email.svg',
-                          color: primaryColor, // O cualquier ícono personalizado
+                          color:
+                              primaryColor, // O cualquier ícono personalizado
                         ),
+                        controller: _emailController,
                       ),
                       const SizedBox(height: 20),
                       _buildTextField(
-                        hint: "Contraseña",
+                        hintText: "Contraseña",
                         prefix: SvgPicture.asset(
                           'assets/icons/lock.svg',
-                          color:  primaryColor, // O cualquier ícono personalizado
+                          color:
+                              primaryColor, // O cualquier ícono personalizado
                         ),
+                        controller: _passwordController,
                         isPassword: true,
                       ),
                       const SizedBox(height: 10),
@@ -144,8 +152,28 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
                       ),
                       const SizedBox(height: 10),
                       ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/wallet');
+                        onPressed: () async {
+                          try {
+                            final email = _emailController.text.trim();
+                            final password = _passwordController.text.trim();
+
+                            final userCredential = await FirebaseAuth.instance
+                                .signInWithEmailAndPassword(
+                                    email: email, password: password);
+
+                            final uid = userCredential.user!.uid;
+
+                            // Verificar si el documento del usuario existe
+                            final userDoc = await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(uid)
+                                .get();
+
+                            Navigator.pushNamed(context, '/wallet');
+                          } catch (e) {
+                            print("Error de inicio de sesión: $e");
+                            // Mostrar error al usuario
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryColor,
@@ -156,9 +184,25 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
                           elevation: 6,
                           shadowColor: Colors.black38,
                         ),
-                        child: const Text("Iniciar Sesión",
-                            style:
-                                TextStyle(fontSize: 16, color: Colors.white)),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SvgPicture.asset(
+                              'assets/icons/login.svg',
+                              width: 24,
+                              height: 24,
+                              color: Colors
+                                  .white, // o primaryColor si está seleccionado
+                            ),
+                            const SizedBox(
+                                width: 8), // Espacio entre ícono y texto
+                            const Text(
+                              "Iniciar Sesión",
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.white),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 25),
                       Text("O continúa con",
@@ -196,11 +240,13 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
   }
 
   Widget _buildTextField({
-    required String hint,
+    required String hintText,
     required Widget prefix,
+    TextEditingController? controller,
     bool isPassword = false,
   }) {
     return TextField(
+      controller: controller,
       obscureText: isPassword,
       style: TextStyle(color: mainTextColor),
       decoration: InputDecoration(
@@ -208,15 +254,13 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
           padding: const EdgeInsets.all(12.0), // Ajusta según tu imagen
           child: prefix,
         ),
-        hintText: hint,
-        hintStyle: TextStyle(color: secondaryTextColor),
+        hintText: hintText,
+        hintStyle: TextStyle(color: mainTextColor.withOpacity(0.5)),
         filled: true,
-        fillColor: Colors.white,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: secondaryTextColor),
-          borderRadius: BorderRadius.circular(14),
+        fillColor: Colors.white.withOpacity(0.8),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(color: primaryColor, width: 2),
