@@ -23,6 +23,7 @@ class _WalletScreenState extends State<wallet> {
   bool isCardScanned = false;
   List<String> cards = ["1234 5678 9012 3456"];
   String? selectedCard;
+  String? selectedMetodo; // Added variable to track selected payment method
 
   String userName = '';
   double balance = 0.0;
@@ -174,109 +175,148 @@ class _WalletScreenState extends State<wallet> {
 
   void _showRechargeDialog() {
     final TextEditingController amountController = TextEditingController();
+    final currencyFormatter =
+        NumberFormat.currency(locale: 'es_MX', symbol: '\$');
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Lottie.asset('assets/tarjeta.json', width: 100, height: 100),
-              const SizedBox(height: 10),
-              const Text("Recargar saldo",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              TextField(
-                controller: amountController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: "Monto a recargar",
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  filled: true,
-                  fillColor: Colors.grey.shade100,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text("Cancelar",
-                          style: TextStyle(color: Colors.black87)),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        final amount = double.tryParse(amountController.text);
-                        if (amount != null && amount > 0) {
-                          Navigator.of(context).pop();
-
-                          final userId = FirebaseAuth
-                              .instance.currentUser!.uid; // ID del usuario
-
-                          try {
-                            final userRef = FirebaseFirestore.instance
-                                .collection('users')
-                                .doc(userId);
-
-                            // 1. Obtener y actualizar el saldo del usuario
-                            final userSnapshot = await userRef.get();
-                            if (userSnapshot.exists) {
-                              final currentBalance =
-                                  userSnapshot.data()?['saldo'] ?? 0.0;
-
-                              await userRef.update({
-                                'saldo': currentBalance + amount,
-                              });
-                            }
-
-                            // 2. Crear una nueva transacción
-                            await userRef.collection('transacciones').add({
-                              'tipo': 'Recarga',
-                              'tarjeta_id': 'selectedCardId',
-                              'fecha': Timestamp.now(),
-                              'monto': amount,
-                            });
-
-                            _showRechargeSuccess();
-                          } catch (e) {
-                            print('Error al recargar saldo: $e');
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text(
-                                      'Error al recargar saldo. Inténtalo de nuevo.')),
-                            );
-                          }
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text(
-                        "Confirmar",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 30,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Lottie.asset('assets/tarjeta.json', width: 100, height: 100),
+                const SizedBox(height: 16),
+                const Text(
+                  "Recargar saldo",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: amountController,
+                  autofocus: true,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    CurrencyInputFormatter(), // 👈 Formateador especial
+                  ],
+                  decoration: InputDecoration(
+                    prefixText: "\$",
+                    labelText: "Monto a recargar",
+                    labelStyle: const TextStyle(fontSize: 16),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 20,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: const Text(
+                          "Cancelar",
+                          style: TextStyle(color: Colors.black87, fontSize: 16),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final enteredText = amountController.text
+                              .replaceAll(RegExp(r'[^\d]'), '');
+                          final amount =
+                              (double.tryParse(enteredText) ?? 0.0) / 100;
+
+                          if (amount > 0) {
+                            Navigator.of(context).pop();
+
+                            final userId =
+                                FirebaseAuth.instance.currentUser!.uid;
+
+                            try {
+                              final userRef = FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(userId);
+
+                              final userSnapshot = await userRef.get();
+                              if (userSnapshot.exists) {
+                                final currentBalance =
+                                    userSnapshot.data()?['saldo'] ?? 0.0;
+                                await userRef.update({
+                                  'saldo': currentBalance + amount,
+                                });
+                              }
+
+                              await userRef.collection('transacciones').add({
+                                'tipo': 'Recarga',
+                                'tarjeta_id': 'selectedCardId',
+                                'fecha': Timestamp.now(),
+                                'monto': amount,
+                              });
+
+                              _showRechargeSuccess();
+                            } catch (e) {
+                              print('Error al recargar saldo: $e');
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        'Error al recargar saldo. Inténtalo de nuevo.')),
+                              );
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: const Text(
+                          "Confirmar",
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -301,17 +341,175 @@ class _WalletScreenState extends State<wallet> {
     });
   }
 
-  void _showManageCardsDialog() {
+  void _showMetodosDePagoModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: backgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 30,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Métodos de Pago",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              StreamBuilder(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(userId)
+                    .collection('metodos_pago')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const CircularProgressIndicator();
+                  }
+                  final metodos = snapshot.data!.docs;
+                  if (metodos.isEmpty) {
+                    return const Text('No tienes métodos de pago registrados.');
+                  }
+                  return Column(
+                    children: metodos.map((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final tipo = data['tipo'] ?? '';
+                      final descripcion = data['descripcion'] ?? '';
+                      final metodoId = doc.id;
+
+                      return ListTile(
+                        leading: _getMetodoIcon(tipo),
+                        title: Text(descripcion),
+                        trailing: Radio<String>(
+                          value: metodoId,
+                          groupValue: selectedMetodo,
+                          onChanged: (value) {
+                            setState(() {
+                              selectedMetodo = value!;
+                            });
+                          },
+                        ),
+                        onTap: () {
+                          setState(() {
+                            selectedMetodo = metodoId;
+                          });
+                        },
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _showAgregarMetodoModal,
+                icon: const Icon(Icons.add),
+                label: const Text("Agregar método de pago"),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: Size(double.infinity, 48),
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAgregarMetodoModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: backgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 30,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Agregar método de pago",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: SvgPicture.asset(
+                'assets/icons/cash.svg',
+                width: 24,
+                height: 24,
+                color: secondaryColor,
+              ),
+              title: const Text('Dinero'),
+              onTap: () => _agregarMetodo('dinero', 'Saldo en cuenta'),
+            ),
+            ListTile(
+              leading: SvgPicture.asset(
+                'assets/icons/credit-card.svg',
+                width: 24,
+                height: 24,
+                color: primaryColor,
+              ),
+              title: const Text('Tarjeta de crédito o débito'),
+              onTap: _showAgregarTarjetaForm,
+            ),
+            ListTile(
+              leading: SvgPicture.asset(
+                'assets/icons/truck.svg',
+                width: 24,
+                height: 24,
+                color: Colors.yellow[900],
+              ),
+              title: const Text('Mercado Pago'),
+              onTap: () => _agregarMetodo('mercado_pago', 'Mercado Pago'),
+            ),
+            ListTile(
+              leading: SvgPicture.asset(
+                'assets/icons/storefront.svg',
+                width: 24,
+                height: 24,
+                color: Colors.red,
+              ),
+              title: const Text('OXXO'),
+              onTap: () => _agregarMetodo('oxxo', 'Pago en OXXO'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAgregarTarjetaForm() {
     final TextEditingController cardNumberController = TextEditingController();
-    bool addingNewCard = false;
+    final TextEditingController cardHolderController = TextEditingController();
+    final TextEditingController expirationDateController =
+        TextEditingController();
+    final TextEditingController cvvController = TextEditingController();
 
-    void _showError(BuildContext context, String message) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.red),
-      );
-    }
-
-    String? selectedCard = cards.isNotEmpty ? cards[0] : null;
+    String? cardError;
+    String? holderError;
+    String? expError;
+    String? cvvError;
 
     showModalBottomSheet(
       context: context,
@@ -332,316 +530,214 @@ class _WalletScreenState extends State<wallet> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Lottie.asset('assets/tarjeta.json', width: 90, height: 90),
-                const SizedBox(height: 16),
-                Text(
-                  addingNewCard ? "Añadir nueva tarjeta" : "Tarjeta actual",
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold),
+                const Text(
+                  "Agregar Tarjeta",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 10),
-                if (!addingNewCard) ...[
-                  const Text(
-                    "Selecciona una tarjeta",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: cardNumberController,
+                  decoration: InputDecoration(
+                    labelText: "Número de tarjeta",
+                    errorText: cardError,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
-                  const SizedBox(height: 10),
-                  StreamBuilder(
-                    stream: FirebaseFirestore.instance
-                        .collection('users')
-                        .doc(userId) // Tu UID
-                        .collection('tarjetas')
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return const Center(
-                            child: Text('No tienes tarjetas registradas.'));
-                      }
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(19),
+                    CardNumberInputFormatter(),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: cardHolderController,
+                  decoration: InputDecoration(
+                    labelText: "Nombre del titular",
+                    errorText: holderError,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  keyboardType: TextInputType.name,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: expirationDateController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(4),
+                          ExpirationDateFormatter(),
+                        ],
+                        decoration: InputDecoration(
+                          labelText: "MM/AA",
+                          hintText: "MM/AA",
+                          errorText: expError,
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: cvvController,
+                        decoration: InputDecoration(
+                          labelText: "CVV",
+                          hintText: '123',
+                          errorText: cvvError,
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        obscureText: true,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(3),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () async {
+                    setState(() {
+                      cardError = holderError = expError = cvvError = null;
 
-                      final cards = snapshot.data!.docs;
+                      if (cardNumberController.text
+                              .replaceAll(RegExp(r'\D'), '')
+                              .length !=
+                          16) cardError = "Debe tener 16 dígitos.";
+                      if (cardHolderController.text.trim().isEmpty)
+                        holderError = "Nombre requerido.";
+                      if (expirationDateController.text.length != 5 ||
+                          !expirationDateController.text.contains('/'))
+                        expError = "Formato inválido (MM/AA)";
+                      if (cvvController.text.length != 3)
+                        cvvError = "CVV inválido.";
+                    });
 
-                      return Column(
-                        children: cards.map((cardDoc) {
-                          final cardData =
-                              cardDoc.data() as Map<String, dynamic>;
-                          final numero = cardData['numero'] ?? '';
-                          final cardId = cardDoc.id;
+                    if (cardError == null &&
+                        holderError == null &&
+                        expError == null &&
+                        cvvError == null) {
+                      final numero = cardNumberController.text
+                          .replaceAll(RegExp(r'\D'), '');
+                      final descripcion =
+                          "Tarjeta terminada en ${numero.substring(numero.length - 4)}";
 
-                          return GestureDetector(
-                            onTap: () => setState(() => selectedCard = cardId),
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: selectedCard == cardId
-                                    ? Colors.blue.shade50
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: selectedCard == cardId
-                                      ? primaryColor
-                                      : Colors.grey.shade300,
-                                  width: 2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black12,
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 3),
-                                  )
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  Radio<String>(
-                                    value: cardId,
-                                    groupValue: selectedCard,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        selectedCard = value!;
-                                      });
-                                    },
-                                    activeColor: primaryColor,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        "Tarjeta terminada en",
-                                        style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.black54),
-                                      ),
-                                      Text(
-                                        "**** **** **** ${numero.substring(numero.length - 4)}",
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 1.2,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(userId)
+                          .collection('metodos_pago')
+                          .add({
+                        'tipo': 'tarjeta',
+                        'descripcion': descripcion,
+                        'detalles': {
+                          'numero': numero,
+                          'holder': cardHolderController.text.trim(),
+                          'expiracion': expirationDateController.text.trim(),
+                          'cvv': cvvController.text.trim(),
+                        },
+                        'createdAt': FieldValue.serverTimestamp(),
+                      });
+
+                      Navigator.pop(context); // Cerrar el modal
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text('Tarjeta agregada exitosamente')),
                       );
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => setState(() => addingNewCard = true),
-                      icon: const Icon(Icons.add),
-                      label: const Text("Añadir nueva tarjeta"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        textStyle: const TextStyle(fontSize: 16),
-                      ),
+                    }
+                  },
+                  child: const Text("Guardar tarjeta"),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(double.infinity, 48),
+                    backgroundColor: secondaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                ] else ...[
-                  TextField(
-                    controller: cardNumberController,
-                    decoration: InputDecoration(
-                      labelText: "Número de tarjeta",
-                      errorText: cardError,
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(19),
-                      CardNumberInputFormatter(),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: cardHolderController,
-                    decoration: InputDecoration(
-                      labelText: "Nombre del titular",
-                      errorText: holderError,
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    keyboardType: TextInputType.name,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: expirationDateController,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(4),
-                            ExpirationDateFormatter(),
-                          ],
-                          decoration: InputDecoration(
-                            labelText: "MM/AA",
-                            hintText: "MM/AA",
-                            errorText:
-                                expError?.isNotEmpty == true ? expError : null,
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14)),
-                            filled: true,
-                            fillColor: Colors.white,
-                          ),
-                          onChanged: (value) {
-                            setState(() {
-                              expError = '';
-                              if (value.length != 5 || !value.contains('/')) {
-                                expError = 'Formato inválido. Usa MM/AA';
-                                return;
-                              }
-
-                              final parts = value.split('/');
-                              final mes = int.tryParse(parts[0]);
-                              final anio = int.tryParse('20${parts[1]}');
-
-                              if (mes == null || mes < 1 || mes > 12) {
-                                expError = 'Mes inválido';
-                                return;
-                              }
-
-                              if (anio == null) {
-                                expError = 'Año inválido';
-                                return;
-                              }
-
-                              final now = DateTime.now();
-                              final expiryDate = DateTime(anio, mes + 1, 0);
-
-                              if (expiryDate.isBefore(now)) {
-                                expError = 'La tarjeta está expirada.';
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: cvvController,
-                          decoration: InputDecoration(
-                            labelText: "CVV",
-                            errorText: cvvError,
-                            hintText: '123',
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14)),
-                            filled: true,
-                            fillColor: Colors.white,
-                          ),
-                          obscureText: true,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(3),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () =>
-                              setState(() => addingNewCard = false),
-                          child: const Text("Cancelar"),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.black87,
-                            side: const BorderSide(color: Colors.black12),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            String card = cardNumberController.text
-                                .replaceAll(RegExp(r'\D'), '');
-                            String holder = cardHolderController.text.trim();
-                            String exp = expirationDateController.text.trim();
-                            String cvv = cvvController.text.trim();
-
-                            setState(() {
-                              cardError =
-                                  holderError = expError = cvvError = null;
-
-                              if (card.length != 16)
-                                cardError = "Debe tener 16 dígitos.";
-                              if (holder.length < 5)
-                                holderError = "Nombre muy corto.";
-                              if (cvv.length < 3) cvvError = "CVV inválido.";
-                            });
-
-                            if (cardError == null &&
-                                holderError == null &&
-                                expError == null &&
-                                cvvError == null) {
-                              setState(() {
-                                cards.add(card);
-                                selectedCard = card;
-                                addingNewCard = false;
-                              });
-
-                              cardNumberController.clear();
-                              cardHolderController.clear();
-                              expirationDateController.clear();
-                              cvvController.clear();
-
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text("Tarjeta guardada: $card")),
-                              );
-                            }
-                          },
-                          child: const Text("Guardar"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: secondaryColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  void _agregarMetodo(String tipo, String descripcion) async {
+    Navigator.pop(context); // Cerrar modal de opciones
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('metodos_pago')
+        .add({
+      'tipo': tipo,
+      'descripcion': descripcion,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Método de pago agregado: $descripcion')),
+    );
+  }
+
+  Widget _getMetodoIcon(String tipo) {
+    switch (tipo) {
+      case 'dinero':
+        return SvgPicture.asset(
+          'assets/icons/cash.svg',
+          width: 24,
+          height: 24,
+          color: secondaryColor,
+        );
+      case 'tarjeta':
+        return SvgPicture.asset(
+          'assets/icons/credit-card.svg',
+          width: 24,
+          height: 24,
+          color: primaryColor,
+        );
+      case 'mercado_pago':
+        return SvgPicture.asset(
+          'assets/icons/truck.svg',
+          width: 24,
+          height: 24,
+          color: Colors.yellow[900],
+        );
+      case 'oxxo':
+        return SvgPicture.asset(
+          'assets/icons/storefront.svg',
+          width: 24,
+          height: 24,
+          color: Colors.red,
+        );
+      default:
+        return SvgPicture.asset(
+          'assets/icons/default-payment.svg',
+          width: 24,
+          height: 24,
+          color: Colors.grey,
+        );
+    }
   }
 
   @override
@@ -702,31 +798,31 @@ class _WalletScreenState extends State<wallet> {
                             Text("Saldo disponible",
                                 style: TextStyle(color: backgroundColor)),
                             const SizedBox(height: 10),
-StreamBuilder<DocumentSnapshot>(
-  stream: FirebaseFirestore.instance
-      .collection('users')
-      .doc(userId)
-      .snapshots(), // Escucha cambios en el usuario
-  builder: (context, snapshot) {
-    if (!snapshot.hasData) {
-      return const CircularProgressIndicator(); // O un loading
-    }
+                            StreamBuilder<DocumentSnapshot>(
+                              stream: FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(userId)
+                                  .snapshots(), // Escucha cambios en el usuario
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) {
+                                  return const CircularProgressIndicator(); // O un loading
+                                }
 
-    final userData = snapshot.data!.data() as Map<String, dynamic>;
-    final balance = userData['saldo'] ?? 0.0;
+                                final userData = snapshot.data!.data()
+                                    as Map<String, dynamic>;
+                                final balance = userData['saldo'] ?? 0.0;
 
-    return Text(
-      "\$${balance.toStringAsFixed(2)}",
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 32,
-        fontWeight: FontWeight.bold,
-        fontFamily: "Roboto",
-      ),
-    );
-  },
-),
-
+                                return Text(
+                                  "\$${balance.toStringAsFixed(2)}",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: "Roboto",
+                                  ),
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ),
@@ -777,7 +873,7 @@ StreamBuilder<DocumentSnapshot>(
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: _showManageCardsDialog,
+                  onPressed: _showMetodosDePagoModal,
                   icon: SvgPicture.asset(
                     'assets/icons/credit-card.svg',
                     width: 24,
@@ -1016,6 +1112,30 @@ class ExpirationDateFormatter extends TextInputFormatter {
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+class CurrencyInputFormatter extends TextInputFormatter {
+  final NumberFormat _formatter =
+      NumberFormat.currency(locale: 'es_MX', symbol: '');
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+    final number = double.parse(digitsOnly) / 100;
+
+    final newText = _formatter.format(number);
+    return TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newText.length),
     );
   }
 }
