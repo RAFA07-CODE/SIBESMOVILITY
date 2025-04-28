@@ -17,6 +17,7 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
   late Animation<double> _fadeAnimation;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _showPassword = false;
 
   @override
   void initState() {
@@ -153,26 +154,71 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
                       const SizedBox(height: 10),
                       ElevatedButton(
                         onPressed: () async {
-                          try {
-                            final email = _emailController.text.trim();
-                            final password = _passwordController.text.trim();
+                          final email = _emailController.text.trim();
+                          final password = _passwordController.text.trim();
 
+                          if (email.isEmpty || password.isEmpty) {
+                            // Mostrar error si los campos están vacíos
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    'Por favor, completa todos los campos.'),
+                                backgroundColor: errorColor,
+                              ),
+                            );
+                            return;
+                          }
+
+                          try {
                             final userCredential = await FirebaseAuth.instance
                                 .signInWithEmailAndPassword(
                                     email: email, password: password);
 
                             final uid = userCredential.user!.uid;
 
-                            // Verificar si el documento del usuario existe
                             final userDoc = await FirebaseFirestore.instance
                                 .collection('users')
                                 .doc(uid)
                                 .get();
 
                             Navigator.pushNamed(context, '/wallet');
+                          } on FirebaseAuthException catch (e) {
+                            String errorMessage;
+
+                            switch (e.code) {
+                              case 'invalid-email':
+                                errorMessage =
+                                    'El correo electrónico no es válido.';
+                                break;
+                              case 'user-not-found':
+                                errorMessage =
+                                    'No existe una cuenta con este correo.';
+                                break;
+                              case 'wrong-password':
+                                errorMessage = 'La contraseña es incorrecta.';
+                                break;
+                              case 'user-disabled':
+                                errorMessage =
+                                    'Esta cuenta ha sido deshabilitada.';
+                                break;
+                              default:
+                                errorMessage = 'Ocurrió un error: ${e.message}';
+                            }
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(errorMessage),
+                                backgroundColor: errorColor,
+                              ),
+                            );
                           } catch (e) {
-                            print("Error de inicio de sesión: $e");
-                            // Mostrar error al usuario
+                            // Cualquier otro error no relacionado directamente con FirebaseAuth
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error inesperado: $e'),
+                                backgroundColor: errorColor,
+                              ),
+                            );
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -191,11 +237,9 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
                               'assets/icons/login.svg',
                               width: 24,
                               height: 24,
-                              color: Colors
-                                  .white, // o primaryColor si está seleccionado
+                              color: Colors.white,
                             ),
-                            const SizedBox(
-                                width: 8), // Espacio entre ícono y texto
+                            const SizedBox(width: 8),
                             const Text(
                               "Iniciar Sesión",
                               style:
@@ -247,13 +291,28 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
   }) {
     return TextField(
       controller: controller,
-      obscureText: isPassword,
+      obscureText: isPassword ? !_showPassword : false,
       style: TextStyle(color: mainTextColor),
       decoration: InputDecoration(
         prefixIcon: Padding(
-          padding: const EdgeInsets.all(12.0), // Ajusta según tu imagen
+          padding: const EdgeInsets.all(12.0),
           child: prefix,
         ),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: SvgPicture.asset(
+                  _showPassword
+                      ? 'assets/icons/eye-off.svg'
+                      : 'assets/icons/eye.svg',
+                  color: primaryColor,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _showPassword = !_showPassword;
+                  });
+                },
+              )
+            : null,
         hintText: hintText,
         hintStyle: TextStyle(color: mainTextColor.withOpacity(0.5)),
         filled: true,

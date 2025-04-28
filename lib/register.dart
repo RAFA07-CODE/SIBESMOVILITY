@@ -79,6 +79,19 @@ class _RegisterScreenState extends State<register>
           'saldo': 0,
         });
 
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('tarjetas')
+            .doc()
+            .set({
+          'titular': '',
+          'noTarjeta': '',
+          'vencimiento': '',
+          'cvv': '',
+        });
+
+
         Navigator.pushReplacementNamed(context, '/login');
       } on FirebaseAuthException catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -153,25 +166,48 @@ class _RegisterScreenState extends State<register>
                         const SizedBox(height: 20),
                         Text("Crear Cuenta", style: _titleStyle()),
                         const SizedBox(height: 24),
-                        _buildTextFormField(Icons.person, "Nombre completo",
+                        _buildTextFormField(
+                            SvgPicture.asset(
+                              'assets/icons/user.svg',
+                              color: _palette["primary"],
+                            ),
+                            "Nombre completo",
                             controller: nameController),
                         const SizedBox(height: 16),
-                        _buildTextFormField(Icons.email, "Correo electrónico",
+                        _buildTextFormField(
+                            SvgPicture.asset(
+                              'assets/icons/email.svg',
+                              color: _palette["primary"],
+                            ),
+                            "Correo electrónico",
                             controller: emailController,
                             validator: _validateEmail),
                         const SizedBox(height: 16),
                         _buildTextFormField(
-                            Icons.phone_android, "Número de teléfono",
+                            SvgPicture.asset(
+                              'assets/icons/phone.svg',
+                              color: _palette["primary"],
+                            ),
+                            "Número de teléfono",
                             controller: phoneController,
                             validator: _validatePhone),
                         const SizedBox(height: 16),
-                        _buildTextFormField(Icons.lock, "Contraseña",
+                        _buildTextFormField(
+                            SvgPicture.asset(
+                              'assets/icons/lock.svg',
+                              color: _palette["primary"],
+                            ),
+                            "Contraseña",
                             controller: passwordController,
                             obscureText: true,
                             validator: _validatePassword),
                         const SizedBox(height: 16),
                         _buildTextFormField(
-                            Icons.lock_outline, "Confirmar contraseña",
+                            SvgPicture.asset(
+                              'assets/icons/lock.svg',
+                              color: _palette["primary"],
+                            ),
+                            "Confirmar contraseña",
                             controller: confirmPasswordController,
                             obscureText: true,
                             validator: _validateConfirmPassword),
@@ -231,36 +267,70 @@ class _RegisterScreenState extends State<register>
   }
 
   Widget _buildTextFormField(
-    IconData icon,
+    Widget prefixIcon, // 👈 ahora recibe un Widget
     String hintText, {
     bool obscureText = false,
     required TextEditingController controller,
     String? Function(String?)? validator,
   }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscureText,
-      validator: validator,
-      style: TextStyle(fontFamily: "Roboto", color: _palette["text"]),
-      keyboardType: hintText.contains("teléfono")
-          ? TextInputType.number
-          : TextInputType.text,
-      decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: _palette["primary"]),
-        hintText: hintText,
-        hintStyle: TextStyle(color: _palette["subtext"]?.withOpacity(0.5)),
-        filled: true,
-        fillColor: _palette["background"],
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: _palette["primary"]!, width: 2),
-            borderRadius: BorderRadius.circular(14)),
-      ),
+    bool isPassword = obscureText;
+    ValueNotifier<bool> showPassword = ValueNotifier<bool>(false);
+
+    return ValueListenableBuilder<bool>(
+      valueListenable: showPassword,
+      builder: (context, value, child) {
+        return TextFormField(
+          controller: controller,
+          obscureText: isPassword ? !value : false,
+          validator: validator ??
+              (hintText.toLowerCase().contains("nombre")
+                  ? (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return "El nombre no puede estar vacío";
+                      }
+                      return null;
+                    }
+                  : null),
+          style: TextStyle(fontFamily: "Roboto", color: _palette["text"]),
+          keyboardType: hintText.contains("teléfono")
+              ? TextInputType.number
+              : TextInputType.text,
+          decoration: InputDecoration(
+            prefixIcon: Padding(
+              padding: const EdgeInsets.all(
+                  12.0), // Para que no se vea tan grande el svg
+              child: prefixIcon,
+            ),
+            suffixIcon: isPassword
+                ? IconButton(
+                    onPressed: () {
+                      showPassword.value = !showPassword.value;
+                    },
+                    icon: SvgPicture.asset(
+                      value
+                          ? 'assets/icons/eye-off.svg'
+                          : 'assets/icons/eye.svg',
+                      color: _palette["primary"],
+                    ),
+                  )
+                : null,
+            hintText: hintText,
+            hintStyle: TextStyle(color: _palette["subtext"]?.withOpacity(0.5)),
+            filled: true,
+            fillColor: _palette["background"],
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: _palette["primary"]!, width: 2),
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        );
+      },
     );
   }
 

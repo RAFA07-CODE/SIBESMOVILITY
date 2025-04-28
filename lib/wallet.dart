@@ -1,9 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:lottie/lottie.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'help.dart';
 import 'perfil.dart';
@@ -16,12 +18,17 @@ class wallet extends StatefulWidget {
 }
 
 class _WalletScreenState extends State<wallet> {
-  double balance = 45.00;
   List<Map<String, String>> transactions = [];
   bool _isScanning = false;
   bool isCardScanned = false;
   List<String> cards = ["1234 5678 9012 3456"];
   String? selectedCard;
+
+  String userName = '';
+  double balance = 0.0;
+  bool isLoading = true;
+
+  late String userId;
 
   final TextEditingController cardNumberController = TextEditingController();
   final TextEditingController cardHolderController = TextEditingController();
@@ -77,6 +84,50 @@ class _WalletScreenState extends State<wallet> {
     }
 
     setState(() => _isScanning = false);
+  }
+
+  Future<void> fetchUserData() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        if (doc.exists) {
+          setState(() {
+            userName = doc.data()!['nombre'] ?? '';
+            balance = (doc.data()!['saldo'] ?? 0).toDouble();
+            isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error cargando datos: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserData();
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      userId = user.uid;
+    } else {
+      // Si no hay usuario autenticado, redirige a la pantalla de login
+      Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
+
+  String _formatFecha(Timestamp? timestamp) {
+    if (timestamp == null) return 'Fecha desconocida';
+    final date = timestamp.toDate();
+    return "${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}";
   }
 
   void _showScanSuccessDialog() {
@@ -166,22 +217,47 @@ class _WalletScreenState extends State<wallet> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         final amount = double.tryParse(amountController.text);
                         if (amount != null && amount > 0) {
                           Navigator.of(context).pop();
-                          setState(() {
-                            balance += amount;
-                            transactions.insert(0, {
+
+                          final userId = FirebaseAuth
+                              .instance.currentUser!.uid; // ID del usuario
+
+                          try {
+                            final userRef = FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(userId);
+
+                            // 1. Obtener y actualizar el saldo del usuario
+                            final userSnapshot = await userRef.get();
+                            if (userSnapshot.exists) {
+                              final currentBalance =
+                                  userSnapshot.data()?['saldo'] ?? 0.0;
+
+                              await userRef.update({
+                                'saldo': currentBalance + amount,
+                              });
+                            }
+
+                            // 2. Crear una nueva transacción
+                            await userRef.collection('transacciones').add({
                               'tipo': 'Recarga',
-                              'tarjeta': cards[0],
-                              'fecha': DateFormat('dd/MM/yyyy – hh:mm a')
-                                  .format(DateTime.now()),
-                              'monto': amount.toStringAsFixed(2)
+                              'tarjeta_id': 'selectedCardId',
+                              'fecha': Timestamp.now(),
+                              'monto': amount,
                             });
-                            isCardScanned = true;
-                          });
-                          _showRechargeSuccess();
+
+                            _showRechargeSuccess();
+                          } catch (e) {
+                            print('Error al recargar saldo: $e');
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content: Text(
+                                      'Error al recargar saldo. Inténtalo de nuevo.')),
+                            );
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -270,65 +346,95 @@ class _WalletScreenState extends State<wallet> {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 10),
-                  ...cards.map((card) => GestureDetector(
-                        onTap: () => setState(() => selectedCard = card),
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: selectedCard == card
-                                ? Colors.blue.shade50
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: selectedCard == card
-                                  ? primaryColor
-                                  : Colors.grey.shade300,
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 6,
-                                offset: const Offset(0, 3),
-                              )
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Radio<String>(
-                                value: card,
-                                groupValue: selectedCard,
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedCard = value!;
-                                  });
-                                },
-                                activeColor: primaryColor,
+                  StreamBuilder(
+                    stream: FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(userId) // Tu UID
+                        .collection('tarjetas')
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(
+                            child: Text('No tienes tarjetas registradas.'));
+                      }
+
+                      final cards = snapshot.data!.docs;
+
+                      return Column(
+                        children: cards.map((cardDoc) {
+                          final cardData =
+                              cardDoc.data() as Map<String, dynamic>;
+                          final numero = cardData['numero'] ?? '';
+                          final cardId = cardDoc.id;
+
+                          return GestureDetector(
+                            onTap: () => setState(() => selectedCard = cardId),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: selectedCard == cardId
+                                    ? Colors.blue.shade50
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: selectedCard == cardId
+                                      ? primaryColor
+                                      : Colors.grey.shade300,
+                                  width: 2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 3),
+                                  )
+                                ],
                               ),
-                              const SizedBox(width: 10),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              child: Row(
                                 children: [
-                                  const Text(
-                                    "Tarjeta terminada en",
-                                    style: TextStyle(
-                                        fontSize: 14, color: Colors.black54),
+                                  Radio<String>(
+                                    value: cardId,
+                                    groupValue: selectedCard,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        selectedCard = value!;
+                                      });
+                                    },
+                                    activeColor: primaryColor,
                                   ),
-                                  Text(
-                                    "**** **** **** ${card.substring(card.length - 4)}",
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.2,
-                                    ),
+                                  const SizedBox(width: 10),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        "Tarjeta terminada en",
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black54),
+                                      ),
+                                      Text(
+                                        "**** **** **** ${numero.substring(numero.length - 4)}",
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1.2,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                      )),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
@@ -439,6 +545,7 @@ class _WalletScreenState extends State<wallet> {
                           decoration: InputDecoration(
                             labelText: "CVV",
                             errorText: cvvError,
+                            hintText: '123',
                             border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14)),
                             filled: true,
@@ -448,7 +555,7 @@ class _WalletScreenState extends State<wallet> {
                           keyboardType: TextInputType.number,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(4),
+                            LengthLimitingTextInputFormatter(3),
                           ],
                         ),
                       ),
@@ -539,6 +646,9 @@ class _WalletScreenState extends State<wallet> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
@@ -566,7 +676,7 @@ class _WalletScreenState extends State<wallet> {
                           TextStyle(color: primaryColor, fontFamily: "Nunito"),
                     ),
                     TextSpan(
-                      text: 'Rafael',
+                      text: userName.isEmpty ? '...' : userName,
                       style: TextStyle(
                           color: Colors.blue[900],
                           fontFamily: "Nunito"), // Azul oscuro
@@ -592,12 +702,31 @@ class _WalletScreenState extends State<wallet> {
                             Text("Saldo disponible",
                                 style: TextStyle(color: backgroundColor)),
                             const SizedBox(height: 10),
-                            Text("\$${balance.toStringAsFixed(2)}",
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily: "Roboto")),
+StreamBuilder<DocumentSnapshot>(
+  stream: FirebaseFirestore.instance
+      .collection('users')
+      .doc(userId)
+      .snapshots(), // Escucha cambios en el usuario
+  builder: (context, snapshot) {
+    if (!snapshot.hasData) {
+      return const CircularProgressIndicator(); // O un loading
+    }
+
+    final userData = snapshot.data!.data() as Map<String, dynamic>;
+    final balance = userData['saldo'] ?? 0.0;
+
+    return Text(
+      "\$${balance.toStringAsFixed(2)}",
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+        fontFamily: "Roboto",
+      ),
+    );
+  },
+),
+
                           ],
                         ),
                       ),
@@ -655,7 +784,7 @@ class _WalletScreenState extends State<wallet> {
                     height: 24,
                     color: Colors.white,
                   ),
-                  label: const Text("Gestionar tarjetas",
+                  label: const Text("Metodos de pago",
                       style: TextStyle(color: Colors.white)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black87,
@@ -680,64 +809,102 @@ class _WalletScreenState extends State<wallet> {
               ),
               const SizedBox(height: 10),
               Expanded(
-                child: ListView.builder(
-                  itemCount: transactions.length,
-                  itemBuilder: (context, index) {
-                    final tx = transactions[index];
-                    final isRecarga = tx['tipo'] == 'Recarga';
-                    return Container(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: isRecarga
-                              ? [Colors.white, secondaryColor]
-                              : [Colors.red.withOpacity(0.05), Colors.red],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 10,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        leading: Container(
+                child: StreamBuilder(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(userId) // 👈 Tu ID de usuario actual
+                      .collection('transacciones')
+                      .orderBy('fecha',
+                          descending:
+                              true) // Opcional: ordena más reciente primero
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(
+                          child: Text('No hay transacciones todavía.'));
+                    }
+
+                    final transactions = snapshot.data!.docs;
+
+                    return ListView.builder(
+                      itemCount: transactions.length,
+                      itemBuilder: (context, index) {
+                        final tx = transactions[index];
+                        final isRecarga = tx['tipo'] == 'Recarga';
+
+                        return Container(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.8),
-                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isRecarga
+                                  ? secondaryColor.withOpacity(0.5)
+                                  : Colors.red.withOpacity(0.5),
+                              width: 2,
+                            ),
+                            gradient: LinearGradient(
+                              colors: isRecarga
+                                  ? [Colors.white, secondaryColor]
+                                  : [Colors.white, Colors.red],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 2,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
                           ),
-                          padding: const EdgeInsets.all(8),
-                          child: SvgPicture.asset(
-                            'assets/icons/${isRecarga ? 'dollar-sign' : 'dollar-sign'}.svg',
-                            width: 32,
-                            height: 32,
-                            color: isRecarga ? secondaryColor : Colors.red,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            leading: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.8),
+                                border: Border.all(
+                                  color:
+                                      isRecarga ? secondaryColor : Colors.red,
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.all(8),
+                              child: SvgPicture.asset(
+                                'assets/icons/${isRecarga ? 'dollar-sign' : 'arrow-down'}.svg',
+                                width: 32,
+                                height: 32,
+                                color: isRecarga ? secondaryColor : Colors.red,
+                              ),
+                            ),
+                            title: Text(
+                              "${tx['tipo']} - \$${tx['monto']}",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                                color: isRecarga
+                                    ? Colors.green[900]
+                                    : Colors.red[900],
+                                fontFamily: 'Roboto',
+                              ),
+                            ),
+                            subtitle: Text(
+                              "${_formatFecha(tx['fecha'])}\nTarjeta: ${tx['tarjeta_id'] ?? 'N/A'}",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isRecarga
+                                    ? Colors.green[800]
+                                    : Colors.red[800],
+                                fontFamily: 'Roboto',
+                              ),
+                            ),
                           ),
-                        ),
-                        title: Text(
-                          "${tx['tipo']} - \$${tx['monto']}",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                            color: Colors.green[900],
-                            fontFamily: 'Roboto',
-                          ),
-                        ),
-                        subtitle: Text(
-                          "${tx['fecha']}\nTarjeta: ${tx['tarjeta']}",
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.green[800],
-                            fontFamily: 'Roboto',
-                          ),
-                        ),
-                      ),
+                        );
+                      },
                     );
                   },
                 ),

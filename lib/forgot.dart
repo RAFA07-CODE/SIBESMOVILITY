@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class forgot extends StatefulWidget {
   const forgot({super.key});
@@ -48,8 +49,12 @@ class _ForgotPasswordState extends State<forgot>
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
-  void _submit() {
-    if (_formKey.currentState!.validate()) {
+void _submit() async {
+  if (_formKey.currentState!.validate()) {
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: _emailController.text.trim(),
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text("Instrucciones enviadas al correo electrónico."),
@@ -57,8 +62,22 @@ class _ForgotPasswordState extends State<forgot>
           duration: const Duration(seconds: 2),
         ),
       );
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = "Ocurrió un error. Intenta nuevamente.";
+      if (e.code == 'user-not-found') {
+        errorMessage = "No se encontró un usuario con ese correo.";
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: _palette["error"],
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
