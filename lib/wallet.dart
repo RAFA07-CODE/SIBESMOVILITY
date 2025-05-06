@@ -111,19 +111,21 @@ class _WalletScreenState extends State<wallet> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    fetchUserData();
+@override
+void initState() {
+  super.initState();
+  fetchUserData();
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      userId = user.uid;
-    } else {
-      // Si no hay usuario autenticado, redirige a la pantalla de login
+  final user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    userId = user.uid;
+  } else {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       Navigator.pushReplacementNamed(context, '/login');
-    }
+    });
   }
+}
+
 
   String _formatFecha(Timestamp? timestamp) {
     if (timestamp == null) return 'Fecha desconocida';
@@ -341,6 +343,19 @@ class _WalletScreenState extends State<wallet> {
     });
   }
 
+  void _editarMetodoPago(String id, Map<String, dynamic> data) {
+    // Mostrar un modal de edición o navegar a una pantalla de edición
+  }
+
+  void _borrarMetodoPago(String id) async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('metodos_pago')
+        .doc(id)
+        .delete();
+  }
+
   void _showMetodosDePagoModal() {
     showModalBottomSheet(
       context: context,
@@ -386,23 +401,64 @@ class _WalletScreenState extends State<wallet> {
                       final descripcion = data['descripcion'] ?? '';
                       final metodoId = doc.id;
 
-                      return ListTile(
-                        leading: _getMetodoIcon(tipo),
-                        title: Text(descripcion),
-                        trailing: Radio<String>(
-                          value: metodoId,
-                          groupValue: selectedMetodo,
-                          onChanged: (value) {
-                            setState(() {
-                              selectedMetodo = value!;
-                            });
-                          },
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 6,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
                         ),
-                        onTap: () {
-                          setState(() {
-                            selectedMetodo = metodoId;
-                          });
-                        },
+                        child: Row(
+                          children: [
+                            _getMetodoIcon(tipo),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                descripcion,
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ),
+                            Radio<String>(
+                              value: metodoId,
+                              groupValue: selectedMetodo,
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedMetodo = value!;
+                                });
+                              },
+                            ),
+                            IconButton(
+                              icon: SvgPicture.asset(
+                                'assets/icons/edit.svg',
+                                width: 20,
+                                height: 20,
+                                color: primaryColor,
+                              ),
+                              onPressed: () {
+                                _editarMetodoPago(metodoId, data);
+                              },
+                            ),
+                            IconButton(
+                              icon: SvgPicture.asset(
+                                'assets/icons/trash.svg',
+                                width: 20,
+                                height: 20,
+                                color: Colors.red,
+                              ),
+                              onPressed: () {
+                                _borrarMetodoPago(metodoId);
+                              },
+                            ),
+                          ],
+                        ),
                       );
                     }).toList(),
                   );
@@ -926,6 +982,7 @@ class _WalletScreenState extends State<wallet> {
                     final transactions = snapshot.data!.docs;
 
                     return ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 80),
                       itemCount: transactions.length,
                       itemBuilder: (context, index) {
                         final tx = transactions[index];

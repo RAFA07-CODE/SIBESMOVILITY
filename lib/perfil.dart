@@ -1,5 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'help.dart';
 import 'wallet.dart';
 
@@ -7,22 +8,27 @@ class perfil extends StatefulWidget {
   const perfil({super.key});
 
   @override
-  State<perfil> createState() => _ProfileScreenState();
+  State<perfil> createState() => _PerfilScreenState();
 }
 
-class _ProfileScreenState extends State<perfil> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-
+class _PerfilScreenState extends State<perfil>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
 
-  final nameController = TextEditingController();
-  final phoneController = TextEditingController();
-  final newPasswordController = TextEditingController();
-  final confirmPasswordController = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController recoveryEmailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController accountTypeController =
+      TextEditingController(text: "Estudiante");
+  final AccountTypeStyle accountStyle = getAccountTypeStyle("Estudiante");
+  bool _showPassword = false; // asegúrate de tener esto en tu StatefulWidget
 
   bool isEditing = false;
-  bool isChangingPassword = false;
+
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
 
   final _palette = const {
     "primary": Color(0xFF007AFF),
@@ -36,155 +42,253 @@ class _ProfileScreenState extends State<perfil> with SingleTickerProviderStateMi
   void initState() {
     super.initState();
     _controller = AnimationController(
-        duration: const Duration(milliseconds: 600), vsync: this);
+        vsync: this, duration: const Duration(milliseconds: 600));
     _fadeAnimation =
         CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
     _controller.forward();
   }
 
   @override
-  Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF007AFF);
+  void dispose() {
+    nameController.dispose();
+    phoneController.dispose();
+    emailController.dispose();
+    recoveryEmailController.dispose();
+    passwordController.dispose();
+    accountTypeController.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _palette["background"],
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
-          child: Column(
-            children: [
-              Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.grey.shade300,
-                    child: const Icon(Icons.person, size: 50, color: Colors.white),
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  "Mi Perfil",
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: _palette["text"],
                   ),
-                  Positioned(
-                    child: Container(
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Imagen del perfil alineada a la izquierda
+                    Container(
+                      margin: const EdgeInsets.only(right: 16),
+                      width: 100,
+                      height: 100,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _palette["primary"],
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.white, size: 20),
-                        onPressed: () {
-                          // lógica para cambiar imagen
-                        },
+                        image: DecorationImage(
+                          image: AssetImage('assets/images/grandfather.png'),
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
-                  )
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.email, color: Colors.grey),
-                  SizedBox(width: 8),
-                  Text("correo@ejemplo.com",
-                      style: TextStyle(fontSize: 16, color: Colors.black87)),
-                ],
-              ),
-              const SizedBox(height: 30),
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    _buildEditableField(
-                        label: "Nombre",
-                        controller: nameController,
-                        icon: Icons.person,
-                        enabled: isEditing),
-                    const SizedBox(height: 20),
-                    _buildEditableField(
-                        label: "Teléfono",
-                        controller: phoneController,
-                        icon: Icons.phone,
-                        enabled: isEditing,
-                        keyboardType: TextInputType.phone),
-                    const SizedBox(height: 30),
-                    isEditing
-                        ? ElevatedButton(
+                    // Botones alineados a la derecha y uno debajo del otro
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          ElevatedButton.icon(
                             onPressed: () {
-                              setState(() => isEditing = false);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Perfil actualizado')),
-                              );
+                              // Acción para borrar cuenta
                             },
-                            style: _buttonStyle(),
-                            child: const Text("Guardar cambios"))
-                        : OutlinedButton(
-                            onPressed: () =>
-                                setState(() => isEditing = !isEditing),
-                            child: const Text("Editar perfil")),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _palette["error"],
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: SvgPicture.asset(
+                              'assets/icons/trash.svg',
+                              width: 20,
+                              height: 20,
+                              color: Colors.white,
+                            ),
+                            label: const Text("Borrar cuenta"),
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton.icon(
+                            onPressed: () async {
+                              await FirebaseAuth.instance.signOut();
+
+                              // Eliminar el stack de navegación anterior y llevar a login (o wallet si prefieres)
+                              Navigator.pushNamedAndRemoveUntil(
+                                  context, '/wallet', (route) => false);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  const Color.fromARGB(255, 255, 21, 21),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: SvgPicture.asset(
+                              'assets/icons/logout.svg',
+                              width: 20,
+                              height: 20,
+                              color: Colors.white,
+                            ),
+                            label: const Text("Cerrar sesión"),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 30),
-              isChangingPassword
-                  ? Column(
-                      children: [
-                        _buildEditableField(
-                            label: "Nueva contraseña",
-                            controller: newPasswordController,
-                            icon: Icons.lock,
-                            obscureText: true),
-                        const SizedBox(height: 16),
-                        _buildEditableField(
-                            label: "Confirmar contraseña",
-                            controller: confirmPasswordController,
-                            icon: Icons.lock_outline,
-                            obscureText: true),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() => isChangingPassword = false);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Contraseña actualizada')),
-                            );
-                          },
-                          style: _buttonStyle(),
-                          child: const Text("Actualizar contraseña"),
-                        )
-                      ],
-                    )
-                  : TextButton(
-                      onPressed: () =>
-                          setState(() => isChangingPassword = true),
-                      child: const Text("Cambiar contraseña")),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: () {
-                  // lógica de cerrar sesión (placeholder)
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                const SizedBox(height: 30),
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      _buildTextField(
+                        label: "Nombre completo",
+                        controller: nameController,
+                        svgAssetPath: 'assets/icons/user.svg',
+                        svgColor: _palette["primary"],
+                        enabled: isEditing,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        label: "Teléfono",
+                        controller: phoneController,
+                        svgAssetPath: 'assets/icons/phone.svg',
+                        svgColor: _palette["primary"],
+                        keyboardType: TextInputType.phone,
+                        enabled: isEditing,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        label: "Correo electrónico",
+                        controller: emailController,
+                        svgAssetPath: 'assets/icons/email.svg',
+                        svgColor: _palette["primary"],
+                        keyboardType: TextInputType.emailAddress,
+                        enabled: isEditing,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        label: "Correo de recuperación",
+                        controller: recoveryEmailController,
+                        svgAssetPath: 'assets/icons/email.svg',
+                        svgColor: _palette["primary"],
+                        keyboardType: TextInputType.emailAddress,
+                        enabled: isEditing,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        label: "Contraseña",
+                        controller: passwordController,
+                        svgAssetPath: 'assets/icons/lock.svg',
+                        svgColor: _palette["primary"],
+                        isPassword: true,
+                        enabled: isEditing,
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
+                        decoration: accountStyle.decoration,
+                        child: Theme(
+                          data: Theme.of(context).copyWith(
+                            inputDecorationTheme: const InputDecorationTheme(
+                              filled: false,
+                              fillColor: Colors.transparent,
+                            ),
+                          ),
+                          child: TextFormField(
+                            controller: accountTypeController,
+                            enabled: false,
+                            style: TextStyle(
+                              color: accountStyle.textColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: "Tipo de cuenta",
+                              labelStyle: TextStyle(
+                                color: accountStyle.textColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              prefixIcon: Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: SvgPicture.asset(
+                                  'assets/icons/user-circle.svg',
+                                  width: 24,
+                                  height: 24,
+                                  color: accountStyle.textColor,
+                                ),
+                              ),
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: const Text("Cerrar sesión"),
-              )
-            ],
+                const SizedBox(height: 10),
+                isEditing
+                    ? ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() => isEditing = false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Perfil actualizado')),
+                          );
+                        },
+                        style: _primaryButtonStyle(),
+                        icon: const Icon(Icons.check_circle),
+                        label: const Text("Guardar cambios"),
+                      )
+                    : OutlinedButton.icon(
+                        onPressed: () => setState(() => isEditing = true),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: _palette["primary"]!),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: SvgPicture.asset(
+                          'assets/icons/edit.svg',
+                          width: 20,
+                          height: 20,
+                          color: _palette["primary"],
+                        ),
+                        label: Text(
+                          "Editar perfil",
+                          style: TextStyle(color: _palette["primary"]),
+                        ),
+                      ),
+              ],
+            ),
           ),
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
+        currentIndex: 0,
         onTap: (index) {
-          if (index == 0) {
-            Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const wallet()));
-          } else if (index == 2) {
+          if (index == 2) {
             Navigator.push(
                 context, MaterialPageRoute(builder: (_) => const help()));
+          } else if (index == 0) {
+            Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const wallet()));
           }
         },
-        selectedItemColor: primaryColor,
+        selectedItemColor: _palette["primary"],
         items: [
           BottomNavigationBarItem(
             icon: SvgPicture.asset(
@@ -197,7 +301,7 @@ class _ProfileScreenState extends State<perfil> with SingleTickerProviderStateMi
               'assets/icons/wallet.svg',
               width: 24,
               height: 24,
-              color: primaryColor,
+              color: _palette["primary"],
             ),
             label: "Wallet",
           ),
@@ -212,7 +316,7 @@ class _ProfileScreenState extends State<perfil> with SingleTickerProviderStateMi
               'assets/icons/user.svg',
               width: 24,
               height: 24,
-              color: primaryColor,
+              color: _palette["primary"],
             ),
             label: "Perfil",
           ),
@@ -227,7 +331,7 @@ class _ProfileScreenState extends State<perfil> with SingleTickerProviderStateMi
               'assets/icons/help.svg',
               width: 24,
               height: 24,
-              color: primaryColor,
+              color: _palette["primary"],
             ),
             label: "Ayuda",
           ),
@@ -236,59 +340,131 @@ class _ProfileScreenState extends State<perfil> with SingleTickerProviderStateMi
     );
   }
 
-  Widget _buildEditableField({
+  Widget _buildTextField({
     required String label,
     required TextEditingController controller,
-    required IconData icon,
+    required String svgAssetPath,
+    Color? svgColor,
     bool enabled = true,
     TextInputType keyboardType = TextInputType.text,
-    bool obscureText = false,
+    bool isPassword = false, // 👈 nueva propiedad
   }) {
     return Material(
-      elevation: 3,
-      borderRadius: BorderRadius.circular(14),
-      shadowColor: Colors.black12,
+      elevation: 2,
+      shadowColor: _palette["primary"],
+      borderRadius: BorderRadius.circular(12),
       child: TextFormField(
         controller: controller,
         enabled: enabled,
-        obscureText: obscureText,
+        obscureText: isPassword ? !_showPassword : false,
         keyboardType: keyboardType,
-        validator: (value) {
-          if (value == null || value.isEmpty) return 'Campo obligatorio';
-          if (label.contains("Teléfono") &&
-              !RegExp(r'^\d{10}$').hasMatch(value)) {
-            return 'Teléfono inválido';
-          }
-          return null;
-        },
+        validator: (value) =>
+            (value == null || value.isEmpty) ? 'Campo obligatorio' : null,
+        style: TextStyle(color: _palette["primary"]),
         decoration: InputDecoration(
-          prefixIcon: Icon(icon),
           labelText: label,
+          labelStyle: TextStyle(color: _palette["primary"]),
           filled: true,
           fillColor: Colors.white,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+          prefixIcon: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: SvgPicture.asset(
+              svgAssetPath,
+              width: 24,
+              height: 24,
+              color: svgColor,
+            ),
+          ),
+          suffixIcon: isPassword
+              ? IconButton(
+                  icon: SvgPicture.asset(
+                    _showPassword
+                        ? 'assets/icons/eye-off.svg'
+                        : 'assets/icons/eye.svg',
+                    color: _palette["primary"],
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _showPassword = !_showPassword;
+                    });
+                  },
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
         ),
       ),
     );
   }
 
-  ButtonStyle _buttonStyle() {
+  ButtonStyle _primaryButtonStyle() {
     return ElevatedButton.styleFrom(
       backgroundColor: _palette["primary"],
       foregroundColor: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       minimumSize: const Size(double.infinity, 50),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
+}
 
-  @override
-  void dispose() {
-    nameController.dispose();
-    phoneController.dispose();
-    newPasswordController.dispose();
-    confirmPasswordController.dispose();
-    _controller.dispose();
-    super.dispose();
+class AccountTypeStyle {
+  final BoxDecoration decoration;
+  final Color textColor;
+
+  AccountTypeStyle({required this.decoration, required this.textColor});
+}
+
+AccountTypeStyle getAccountTypeStyle(String tipo) {
+  List<Color> gradientColors;
+  Color borderColor;
+  Color textColor;
+  Color shadowColor;
+
+  switch (tipo.toLowerCase()) {
+    case "estudiante":
+      gradientColors = [Colors.white, Colors.green.shade300];
+      borderColor = Colors.green;
+      textColor = Colors.green.shade900;
+      shadowColor = Colors.green;
+      break;
+    case "persona con discapacidad":
+      gradientColors = [Colors.white, Colors.blue.shade300];
+      borderColor = Colors.blue;
+      textColor = Colors.blue.shade900;
+      shadowColor = Colors.blue;
+      break;
+    case "adulto mayor":
+      gradientColors = [Colors.white, const Color(0xFFE91E63)];
+      borderColor = const Color(0xFFE91E63);
+      textColor = const Color(0xFF880E4F);
+      shadowColor = const Color(0xFFE91E63);
+      break;
+    default:
+      gradientColors = [Colors.white, Colors.orange.shade300];
+      borderColor = Colors.orange;
+      textColor = Colors.orange.shade900;
+      shadowColor = Colors.orange;
+      break;
   }
+
+  final decoration = BoxDecoration(
+    border: Border.all(color: borderColor.withOpacity(0.5), width: 2),
+    gradient: LinearGradient(
+      colors: gradientColors,
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    borderRadius: BorderRadius.circular(16),
+    boxShadow: [
+      BoxShadow(
+        color: shadowColor.withOpacity(0.3),
+        blurRadius: 6,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+
+  return AccountTypeStyle(decoration: decoration, textColor: textColor);
 }

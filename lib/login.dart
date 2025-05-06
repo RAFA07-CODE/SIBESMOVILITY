@@ -181,7 +181,7 @@ class _LoginPageState extends State<login> with SingleTickerProviderStateMixin {
                                 .doc(uid)
                                 .get();
 
-                            Navigator.pushNamed(context, '/wallet');
+                            Navigator.pushReplacementNamed(context, '/wallet');
                           } on FirebaseAuthException catch (e) {
                             String errorMessage;
 

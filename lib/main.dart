@@ -1,4 +1,5 @@
 import 'package:animated_splash_screen/animated_splash_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
@@ -53,9 +54,10 @@ class MyApp extends StatelessWidget {
         ),
       ),
       
-      initialRoute: '/splash',
+      initialRoute: '/',
+
       routes: {
-        '/': (context) => const splash(),
+        '/': (context) => const AuthWrapper(),
         '/welcome': (context) => const welcome(), 
         '/login': (context) => const login(),     
         '/wallet': (context) => const wallet(),  
@@ -66,5 +68,42 @@ class MyApp extends StatelessWidget {
         '/splash': (context) => const splash(),       
       },
     );
+  }
+}
+
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _checkingAuth = true;
+  bool _isLoggedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthStatus();
+  }
+
+  Future<void> _checkAuthStatus() async {
+    await Future.delayed(const Duration(seconds: 2)); // duración del splash
+    final user = FirebaseAuth.instance.currentUser;
+
+    setState(() {
+      _isLoggedIn = user != null;
+      _checkingAuth = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_checkingAuth) {
+      return const splash(); // Tu widget splash animado
+    }
+
+    return _isLoggedIn ? const wallet() : const welcome();
   }
 }
